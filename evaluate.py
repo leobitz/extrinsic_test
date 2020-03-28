@@ -68,5 +68,5 @@ def evaluate(vector_file, eval_file):
     result = e.evaluate()
     return result
 
-result = evaluate("vectors/fasttext/100-10-5-5-1-abj.vec", "eval/abj-word-analogy.txt")
+result = evaluate("vectors/fasttext/200-12-1-5-1-abj.vec", "eval/abj-word-analogy.txt")
 print(result)

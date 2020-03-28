@@ -1,4 +1,4 @@
-for embed_size in 100  200 300
+for embed_size in 100 200 300
 do
     for run in 4 8 12
     do

@@ -28,11 +28,11 @@ def encode(word):
         if char in fidel_chars:
             c, v = char2tup[char]
             new_v = vowels[v]
-            tup = "{0}-5".format(c)
-            if tup not in tup2char:
-                tup = "{0}-1".format(c)
+            tup = "{0}-0".format(c)
+            # if tup not in tup2char:
+            #     tup = "{0}-0".format(c)
             new_c = tup2char[tup]
-            if c == 5:
+            if v == 0:
                 chars += [new_c]
             else:
                 chars += [new_c, new_v]
@@ -40,6 +40,7 @@ def encode(word):
             chars += [char]
     return ''.join(chars)
 
+# print(encode("የኢትዮጵያ"))
 lines = open(args.input_file, encoding='utf-8').read().split('\n')
 abj_file = open(args.output_file, encoding='utf-8', mode='w')
 for line in lines:
