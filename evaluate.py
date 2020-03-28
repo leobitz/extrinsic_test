@@ -1,101 +1,72 @@
-import argparse
-import numpy as np
+import gensim
+import logging
+import collections
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--vector_file', type=str)
-    parser.add_argument('--eval_file', type=str)
-    args = parser.parse_args()
 
-    # with open(args.vocab_file, 'r') as f:
-    #     words = [x.rstrip().split(' ')[0] for x in f.readlines()]
-    with open(args.vectors_file, 'r') as f:
-        vectors = {}
-        for line in f:
+class Eval:
+
+    def __init__(self, vector_file, eval_file):
+        self.embed_size = 0
+        self.iter = 0
+        self.test_file = eval_file
+        self.word2int = {}
+        self.prepare(vector_file)
+
+    def prepare(self, vector_file):
+        file = open(vector_file, encoding='utf-8')
+        line = file.readline().rstrip().split(' ')
+        vocab_size, embed_size = int(line[0]), int(line[1])
+        self.embed_size = embed_size
+        vocab = []
+        word2vector = {}
+        k = 0
+        for line in file:
             vals = line.rstrip().split(' ')
-            vectors[vals[0]] = map(float, vals[1:])
+            word = vals[0]
+            vec = [float(x) for x in vals[1:]]
+            word2vector[word] = vec
+            vocab.append(word)
+            self.word2int[word] = k
+            k += 1
 
-    vocab_size = len(words)
-    vocab = {w: idx for idx, w in enumerate(words)}
-    ivocab = {idx: w for idx, w in enumerate(words)}
+        self.data = [vocab]
+        self.model = gensim.models.Word2Vec(
+            self.data, size=self.embed_size, iter=0, min_count=0)
+        self.set_embeddings(self.word2int, word2vector)
 
-    vector_dim = len(vectors[ivocab[0]])
-    W = np.zeros((vocab_size, vector_dim))
-    for word, v in vectors.iteritems():
-        if word == '<unk>':
-            continue
-        W[vocab[word], :] = v
+    def evaluate(self):
+        result = self.model.wv.accuracy(self.test_file, restrict_vocab=len(
+            self.model.wv.vocab), case_insensitive=False)
+        actual_result = {}
+        for i in range(len(result)):
+            section = result[i]['section']
+            correct = len(result[i]['correct'])
+            incorrect = len(result[i]['incorrect'])
+            total = correct + incorrect
+            actual_result[section] = correct * 100.0 / total
+        return actual_result
 
-    # normalize each word vector to unit variance
-    W_norm = np.zeros(W.shape)
-    d = (np.sum(W ** 2, 1) ** (0.5))
-    W_norm = (W.T / d).T
-    evaluate_vectors(W_norm, vocab, ivocab, args.eval_file)
+    def set_embeddings(self, word2int, embeddings):
+        """Transfers the word embedding learned bu tensorflow to gensim model
+        Params:
+            gensim_model - un untrained gensim_model
+            word2int - dictionary that maps words to int index
+            embedding - a new learned embeddings by tensorflow
+        """
+        self.model.wv.init_sims()
+        for gindex in range(len(self.model.wv.index2word)):
+            try:
+                gword = self.model.wv.index2word[gindex]
+                index = word2int[gword]
+                embedding = embeddings[gword]
+                self.model.wv.vectors_norm[gindex] = embedding
+            except Exception as e:
+                print(gword)
 
-def evaluate_vectors(W, vocab, ivocab, eval_file):
-    """Evaluate the trained word vectors on a variety of tasks"""
+def evaluate(vector_file, eval_file):
+    e = Eval(vector_file, eval_file)
+    result = e.evaluate()
+    return result
 
-    # to avoid memory overflow, could be increased/decreased
-    # depending on system and vocab size
-    split_size = 100
-
-    correct_sem = 0; # count correct semantic questions
-    correct_syn = 0; # count correct syntactic questions
-    correct_tot = 0 # count correct questions
-    count_sem = 0; # count all semantic questions
-    count_syn = 0; # count all syntactic questions
-    count_tot = 0 # count all questions
-    full_count = 0 # count all questions, including those with unknown words
-
-    # for i in xrange(len(filenames)):
-    with open(eval_file, 'r') as f:
-        full_data = [line.rstrip().split(' ') for line in f if ":" not in line]
-        full_count += len(full_data)
-        data = [x for x in full_data if all(word in vocab for word in x)]
-
-    indices = np.array([[vocab[word] for word in row] for row in data])
-    ind1, ind2, ind3, ind4 = indices.T
-
-    predictions = np.zeros((len(indices),))
-    num_iter = int(np.ceil(len(indices) / float(split_size)))
-    for j in range(num_iter):
-        subset = np.arange(j*split_size, min((j + 1)*split_size, len(ind1)))
-
-        pred_vec = (W[ind2[subset], :] - W[ind1[subset], :]
-            +  W[ind3[subset], :])
-        #cosine similarity if input W has been normalized
-        dist = np.dot(W, pred_vec.T)
-
-        for k in range(len(subset)):
-            dist[ind1[subset[k]], k] = -np.Inf
-            dist[ind2[subset[k]], k] = -np.Inf
-            dist[ind3[subset[k]], k] = -np.Inf
-
-        # predicted word index
-        predictions[subset] = np.argmax(dist, 0).flatten()
-
-    val = (ind4 == predictions) # correct predictions
-    count_tot = count_tot + len(ind1)
-    correct_tot = correct_tot + sum(val)
-    if i < 5:
-        count_sem = count_sem + len(ind1)
-        correct_sem = correct_sem + sum(val)
-    else:
-        count_syn = count_syn + len(ind1)
-        correct_syn = correct_syn + sum(val)
-
-    print("%s:" % filenames[i])
-    print('ACCURACY TOP1: %.2f%% (%d/%d)' %
-        (np.mean(val) * 100, np.sum(val), len(val)))
-
-    print('Questions seen/total: %.2f%% (%d/%d)' %
-        (100 * count_tot / float(full_count), count_tot, full_count))
-    print('Semantic accuracy: %.2f%%  (%i/%i)' %
-        (100 * correct_sem / float(count_sem), correct_sem, count_sem))
-    print('Syntactic accuracy: %.2f%%  (%i/%i)' %
-        (100 * correct_syn / float(count_syn), correct_syn, count_syn))
-    print('Total accuracy: %.2f%%  (%i/%i)' % (100 * correct_tot / float(count_tot), correct_tot, count_tot))
-
-
-if __name__ == "__main__":
-    main()
+result = evaluate("vectors/fasttext/100-10-5-5-1-abj.vec", "eval/abj-word-analogy.txt")
+print(result)
