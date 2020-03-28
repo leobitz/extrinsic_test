@@ -1,9 +1,11 @@
 from lib import *
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--input_file', type=str)
+parser.add_argument('--output_file', type=str)
+args = parser.parse_args()
 
-# words = read_words("data/clean_corpus.txt")
-# vocab, word2int, int2word = build_vocab(words)
-# word2freq = get_word_frequency(words, word2int, int2word)
 char2int, int2char, char2tup, tup2char, n_consonant, n_vowel = build_charset()
 vowels = ['e', 'u', 'i', 'a', 'ê', 'æ', 'o', 'õ', 'ø', 'ü', 'ç', 'ð']
 fidel_chars = open('fidel_chars.txt', encoding='utf-8').read()
@@ -38,8 +40,8 @@ def encode(word):
             chars += [char]
     return ''.join(chars)
 
-lines = open("data/clean_corpus.txt", encoding='utf-8').read().split('\n')
-abj_file = open("data/abj_clean_corpus.txt", encoding='utf-8', mode='w')
+lines = open(args.input_file, encoding='utf-8').read().split('\n')
+abj_file = open(args.output_file, encoding='utf-8', mode='w')
 for line in lines:
     words = line.split(' ')
     abj_words = []

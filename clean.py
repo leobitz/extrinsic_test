@@ -1,6 +1,6 @@
 import re
 import string
-corpus = open('corpus.txt', encoding='utf-8').read().split('\n') # load the raw corpus line by line
+corpus = open('data/corpus.txt', encoding='utf-8').read().split('\n') # load the raw corpus line by line
 charset = open('charset.txt', encoding='utf-8').read().split('\n') # load the valid character set that should be in the text
 chars = [line.split(' ') for line in charset] # 
 charset = []
@@ -148,7 +148,7 @@ def replace_non_am_with_unk(line):
 
 space = '()!?።"፠፡፣፤፥፦፧፨%…' # characters that should have space around them
 space = {c:c for c in space}
-clean = open('clean_corpus.txt', encoding='utf-8', mode='w') # the clean file
+clean = open('data/clean_corpus.txt', encoding='utf-8', mode='w') # the clean file
 max_word_len  = 13 # maximum word length
 for line in corpus:
     if not checkIfAm(line): # if the line doesn't contain amharic character, skip it
@@ -158,11 +158,11 @@ for line in corpus:
     # if len(line) > 0: # if there are characters
     line =  clean_multiple_chars('"', line) # replace multiple '"' with single '"' e.g """" => "
     line =  clean_multiple_chars('!', line) # replace multiple '!' with single '!' e.g !!! => !
-    patter = re.compile(r'(\. )'.format(chars)+"{2,}") 
+    patter = re.compile(r'(\. )') 
     line = re.sub(patter, '…', line) # replace multiple '. ' with single '…' e.g . . . . => …
-    patter = re.compile(r'(\.)'.format(chars)+"{2,}")
+    patter = re.compile(r'(\.)')
     line = re.sub(patter, '…', line) # replace multiple '.' with single '…' e.g ... => …
-    patter = re.compile('(#)'.format(chars)+"{2,}")
+    patter = re.compile('(#)')
     line = re.sub(patter, '#', line) # replace multiple '#' with single '#' e.g ### => #
     line = re.sub(r'\…+', "…", line) # replace multiple '…' with single '…' e.g …… => …
     line = re.sub(r'\…\s+', "…", line) # replace multiple '… ' with single '… …' e.g … … => …
