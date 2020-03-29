@@ -1,7 +1,7 @@
 import gensim
 import logging
 import collections
-
+import argparse
 
 class Eval:
 
@@ -68,5 +68,11 @@ def evaluate(vector_file, eval_file):
     result = e.evaluate()
     return result
 
-result = evaluate("vectors/fasttext/200-12-1-5-1-abj.vec", "eval/abj-word-analogy.txt")
-print(result)
+
+# parser = argparse.ArgumentParser()
+# parser.add_argument('--vector_file', type=str)
+# parser.add_argument('--eval_file', type=str)
+# args = parser.parse_args()
+
+# result = evaluate(args.vector_file, args.eval_file)
+# print(result)
