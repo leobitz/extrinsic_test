@@ -4,7 +4,7 @@ do
     do
         for win_size in 1 3 5
         do
-            for char_size in 5  6
+            for char_size in 5 6
             do
                 for iter in 1 2 3 4 5
                 do
@@ -13,8 +13,8 @@ do
                     then
                         echo "File Exists"
                     else
-                        fasttext skipgram -input 'data/clean_corpus.txt' -output $output_file -dim $embed_size -epoch $run -maxn $char_size -minn 2 -ws $win_size
-                        fasttext skipgram -input 'data/abj_clean_corpus.txt' -output $output_file-abj -dim $embed_size -epoch $run -maxn $char_size -minn 2 -ws $win_size
+                        # fasttext skipgram -input 'data/clean_corpus.txt' -output $output_file -dim $embed_size -epoch $run -maxn $char_size -minn 2 -ws $win_size
+                        fasttext skipgram -input 'data/abj_clean_corpus.txt' -output $output_file-abj -dim $embed_size -epoch $run -maxn $char_size -minn 2 -ws $win_size -thread 15
                     fi
                 done
             done

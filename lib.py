@@ -1,6 +1,9 @@
 
 
 def read_words(file_name):
+    """
+    returns list of the word sequence of the coprus
+    """
     lines = open(file_name, encoding='utf-8').read().split('\n')
     words = []
     for line in lines:
@@ -8,6 +11,11 @@ def read_words(file_name):
     return words
 
 def build_vocab(words):
+    """
+    builds word to integer id dictionary mapping and vice versa
+    It returns sorted list of the entire vocabulary, word to id, id to word
+
+    """
     vocab = sorted(set(words))
     word2int = {word: x for x, word in enumerate(vocab)}
     int2word = {x: word for x, word in enumerate(vocab)}
