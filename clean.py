@@ -26,6 +26,7 @@ reps = {
     "።": ":: ∶∶ ：： ᎓᎓ ፡፡ ። ˸˸ ::".split(' '), # Exmaple: used for mapping ˸˸ => ።
     "፦": [':-', ': -', '፡ -', '፡-']
 }
+unknown_word = "u" # unknown word to replace with unknown tokens
 reps_map ={} # reversing the mapping
 for key in reps:
     for s in reps[key]:
@@ -50,7 +51,7 @@ def replace(line, map_char):
             if char in map_char: # character that can be mapped from the normalization made on map_char
                 new_chars.append(map_char[char])
             else:
-                new_chars.append("u") # if completely unknown character, replaced with <space>
+                new_chars.append(unknown_word) # if completely unknown character, replaced with <space>
     line = " ".join("".join(new_chars).split(" "))
     return line
 
@@ -64,7 +65,7 @@ puncs = list(set('()!?#.-"%…/u ' + string.punctuation))
 
 def clean_series_punctuation(line, seq_len=4):
     """
-    Given text, it will remove series of unknown tokens if the series is more than 5 tokens
+    Given text, it will remove series of unknown tokens if the series has more than 5 tokens
 
     """
     words = line.split(" ")
@@ -86,7 +87,7 @@ def clean_series_punctuation(line, seq_len=4):
             # print(words[i], amahric, changed)
             if changed:
                 if len(buffer) > 5:
-                    buffer = ['u']
+                    buffer = [unknown_word]
                 main_line.extend(buffer)
                 buffer = [words[i]]
             else:
@@ -105,7 +106,7 @@ def clean_series_punctuation(line, seq_len=4):
         main_line.extend(buffer)
     else:
         if len(buffer) > 5:
-            buffer = ['u']
+            buffer = [unknown_word]
         main_line.extend(buffer)
     text =" ".join(main_line)
     return text
@@ -141,7 +142,7 @@ def replace_non_am_with_unk(line):
             new_words.append(word)
         else:
             if len(word) > 1:
-                new_words.append('u')
+                new_words.append(unknown_word)
             else:
                 new_words.append(word)
     return " ".join(new_words)
@@ -183,6 +184,8 @@ for line in corpus:
     for s in sp: # check if every word's length is less than (max_word_len + 1)
         if len(s) <= max_word_len:
             valid_words.append(s)
+        else:
+            valid_words.append(unknown_word)
     if len(valid_words) > 1: # only if the line contains more than one word, add it to the corpus
         line = " ".join(valid_words)
         line = replace_non_am_with_unk(line) # if a token doesn't contain amharic fidel, replace it with u. e.g. u#/ => U
