@@ -1,11 +1,11 @@
 
-for embed_size in 100 200 300
+for embed_size in 125
 do
-    for run in 4 8 12
+    for run in 8
     do
-        for win_size in 1 3 5
+        for win_size in 1
         do
-            for iter in 1 2 3 4 5 
+            for iter in 1
             do
                 output_file="vectors/word2vec/$embed_size-$run-$win_size-$iter"
                 if [ -e $output_file ]

@@ -40,16 +40,46 @@ def encode(word):
             chars += [char]
     return ''.join(chars)
 
+with open('vectors/fasttext/125-5-1-5-1-abj-abj.vec', encoding='utf-8') as f:
+    fline = f.readline().strip().split()
+    vocab_size, embed_size = int(fline[0]), int(fline[1])
+    abjw2vec = {}
+    for line in f:
+        line = line.strip().split()
+        word, vec = line[0], [float(x) for x in line[1:]]
+        word = word.strip()
+        abjw2vec[word] = vec
+
+    with open('vectors/fasttext/125-5-1-5-1.vec', encoding='utf-8') as ff:
+        line = ff.readline().strip().split()
+        vocab_size, embed_size = int(fline[0]), int(fline[1])
+        word2word = {}
+        for line in ff:
+            line = line.strip().split()
+            word = line[0] 
+            word = word.strip()
+            word2word[word] = abjw2vec[encode(word)]
+
+    with open('vectors/fasttext/abj.vec', mode='w', encoding='utf-8') as fg:
+        fg.write(" ".join(fline))
+        fg.write('\n')
+        for word in word2word:
+            vec = word2word[word]
+            vec = word + " " + " ".join([str(x) for x in vec])
+            fg.write(vec)
+            fg.write('\n')
+
+
 # print(encode("የኢትዮጵያ"))
-lines = open(args.input_file, encoding='utf-8').read().split('\n')
-abj_file = open(args.output_file, encoding='utf-8', mode='w')
-for line in lines:
-    words = line.split(' ')
-    abj_words = []
-    for word in words:
-        abj = encode(word)
-        abj_words.append(abj)
-    abj_line =" ".join(abj_words)
-    abj_file.write(abj_line)
-    abj_file.write("\n")
-abj_file.close()
+# lines = open(args.input_file, encoding='utf-8').read().split('\n')
+# abj_file = open(args.output_file, encoding='utf-8', mode='w')
+# for line in lines:
+#     words = line.split(' ')
+#     abj_words = []
+#     for word in words:
+#         abj = encode(word)
+#         abj_words.append(abj)
+#     abj_line =" ".join(abj_words)
+#     abj_file.write(abj_line)
+#     abj_file.write("\n")
+# abj_file.close()
