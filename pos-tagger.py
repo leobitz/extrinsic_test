@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch as t
 import os
-from crf.crf import ConditionalRandomField
+# from crf.crf import ConditionalRandomField
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
