@@ -55,3 +55,49 @@ def build_charset(charset_file="charset.txt"):
             tup2char[tup] = row[i]
             j += 1
     return char2int, int2char, char2tup, tup2char, n_consonant, n_vowel
+
+
+def get_pos_data_v2(name, delimiter='/'):
+    lines = open(name, encoding='utf-8').read().split('\n')
+    data = []
+    empty = 0
+    legal = 0
+    error = 0
+    vocab = set([])
+    tags = set([])
+    for index, line in enumerate(lines):
+        line = line.strip().split()
+        # line = [w.split('/') for w in line]
+        split_line = []
+        for pair in line:
+            if '//' in pair and pair[0] == '/' and pair[1] == '/':
+                word = '/'
+                tag = pair.split('/')[-1]
+                split_line.append([word, tag])
+            else:
+                split_line.append(pair.split('/'))
+        pairs = []
+        for pair in split_line:
+            if len(pair) >= 3:
+                word = ' '.join(pair[:-1])
+                tag = pair[-1]
+                pair = [word, tag]
+            if len(pair) != 2:
+                error +=1
+                print(index, pair)
+                continue
+            word, tag = pair
+            if word == '' :
+                empty += 1
+            else:
+                tag = tag.upper().strip()
+                word = word.strip()
+                # if tag == '75':
+                #     print((word, tag), index)
+                pairs.append((word, tag))
+                vocab.add(word)
+                tags.add(tag)
+                legal += 1
+            
+        data.append(pairs)
+    return data, list(vocab), list(tags)
