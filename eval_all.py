@@ -22,7 +22,7 @@ import os
 import numpy as np 
 
 eval_file = "eval/word-analogy.txt"
-result = evaluate.evaluate("vectors/fasttext/abj.vec", eval_file)
+result = evaluate.evaluate("vectors/word2vec.vec", eval_file)
 print(result)
 # for embed_size in [125]:
 #     for run in [8]:
