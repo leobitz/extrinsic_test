@@ -24,6 +24,7 @@ parser.add_argument("-e", "--epochs", type=int)
 parser.add_argument("-b", "--batch_size", type=int, default=32)
 parser.add_argument("-s", "--seq_length", type=int, default=62)
 parser.add_argument("-t", "--train_emb", type=int, default=1)
+parser.add_argument("-r", "--run", type=int)
 args = parser.parse_args()
 
 corpus = 'data/posdata/' + args.corpus
@@ -34,7 +35,7 @@ else:
     vec_name = args.vector
     vector_file_name = 'vectors/' + args.vector + ".vec"
 
-accuracy_file = "result/pos/{0}-{1}-{2}-{3}".format(args.corpus, vec_name, args.units, args.train_emb)
+accuracy_file = "result/pos/crf-{0}-{1}-{2}-{3}-{4}".format(args.corpus, vec_name, args.units, args.train_emb, args.run)
 hidden_size = args.units
 epochs = args.epochs
 batch_size = args.batch_size
