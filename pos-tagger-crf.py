@@ -28,7 +28,7 @@ parser.add_argument("-r", "--run", type=int)
 args = parser.parse_args()
 
 corpus = 'data/posdata/' + args.corpus
-if args.vector is None:
+if args.vector == "scratch":
     vector_file_name = None
     vec_name = "scratch"
 else:
@@ -277,7 +277,7 @@ def test(model, test_x, test_y, test_m, batch_size, unknowns):
             knmats += knmat
             unknmats += unknmat
     # return acc
-    return calc_eval(knmats), calc_eval(unknmats), calc_eval(unknmats + knmats)
+    return [calc_eval(knmats), calc_eval(unknmats), calc_eval(unknmats + knmats)]
 
 
 class Tagger(nn.Module):
@@ -341,8 +341,10 @@ def train_model(train_x, train_y, train_m, test_x, test_y, test_m, batch_size, e
             batch_loss = loss.detach().cpu().numpy()
             total_loss += batch_loss
         accuracy = test(model, test_x, test_y, test_m, test_batch_size, unknowns)
+        loss = total_loss / n_batches
+        print("Epoch: {0}, Loss: {1:.3}, Test: {2:.3}, {3:.3}, {4:.3}".format(epoch, loss, accuracy[0][0], accuracy[1][0], accuracy[2][0]))
+        accuracy.insert(0, [loss])
         accs.append(accuracy)
-        print(epoch, total_loss / n_batches, accuracy)
     return accs
 
 
