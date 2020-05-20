@@ -114,6 +114,74 @@ def clean_series_punctuation(line, seq_len=4):
     text =" ".join(main_line)
     return text
 
+def replace_abbri(line):
+    line = line.replace('ዶ/ ር', 'ዶ/ር')
+    line = line.replace('ወ/ ሮ', 'ወ/ሮ')
+    line = line.replace('ም/ ቤት', 'ም/ቤት')
+    line = line.replace('ሚ/ ሩ', 'ሚ/ሩ')
+    line = line.replace('ጠ/ ሚ/ ር', 'ጠ/ሚ/ር')
+    line = line.replace('ዓ. ም.', 'ዓ.ም.')
+    line = line.replace('ዓ. ም', 'ዓ.ም.')
+    line = line.replace('መ/ ቤት', 'መ/ቤት')
+    line = line.replace('ሚ/ ር', 'ሚ/ር')
+    line = line.replace('ት/ ቤ', 'ት/ቤ')
+    line = line.replace('መ/ ቤ', 'መ/ቤ')
+    line = line.replace('ፍ/ ቤ', 'ፍ/ቤ')
+    line = line.replace('ጽ/ ቤ', 'ጽ/ቤ')
+    line = line.replace('ጠ/ ሚ', 'ጠ/ሚ')
+    line = line.replace('ያኔ/ ኢ', 'ያኔ/ኢ')
+    line = line.replace('ም/ ሚ', 'ም/ሚ')
+    line = line.replace('ም/ ቤ', 'ም/ቤ')
+    line = line.replace('ጄ/ ል', 'ጄ/ል')
+    line = line.replace('መ/ አ', 'መ/አ')
+    line = line.replace('ኰ/ ል', 'ኰ/ል')
+    line = line.replace('ዓ / ም', 'ዓ.ም')
+    line = line.replace('ዓ.ም. ', 'ዓ.ም ')
+    line = line.replace('ፕ/ ር', 'ፕ/ር')
+    line = line.replace('ጄ/ ል', 'ጄ/ል')
+    line = line.replace('ከ/ ፕ', 'ከ/ፕ')
+    line = line.replace('ወ/ ት', 'ወ/ት')
+    line = line.replace('ቤ / ክ', 'ቤ/ክ')
+    line = line.replace('ጠ / ሚ / ር', 'ጠ/ሚ/ር')
+    line = line.replace('ክ/ ር', 'ክ/ር')
+    line = line.replace('ፕ/ ት', 'ፕ/ት')
+    line = line.replace('ፕ/ ት', 'ፕ/ት')
+    line = line.replace('አ/ አ', 'አ/አ')
+    line = line.replace('ጄ/ ሉ', 'ጄ/ሉ')
+    
+    line = line.replace('ጄ / ሉ', 'ጄ/ሉ')
+    line = line.replace('አ / አ', 'አ/አ')
+    line = line.replace('ፕ / ት', 'ፕ/ት')
+    line = line.replace('ፕ / ት', 'ፕ/ት')
+    line = line.replace('ክ / ር', 'ክ/ር')
+    line = line.replace('ቤ / ክ', 'ቤ/ክ')
+    line = line.replace('ወ / ት', 'ወ/ት')
+    line = line.replace('ከ / ፕ', 'ከ/ፕ')
+    line = line.replace('ጄ / ል', 'ጄ/ል')
+    line = line.replace('ፕ / ር', 'ፕ/ር')
+    line = line.replace('ዓ/ም', 'ዓ.ም.')
+    line = line.replace('ኰ / ል', 'ኰ/ል')
+    line = line.replace('መ / አ', 'መ/አ')
+    line = line.replace('ጄ / ል', 'ጄ/ል')
+    line = line.replace('ዶ / ር', 'ዶ/ር')
+    line = line.replace('ወ / ሮ', 'ወ/ሮ')
+    line = line.replace('ም / ቤት', 'ም/ቤት')
+    line = line.replace('ሚ / ሩ', 'ሚ/ሩ')
+    line = line.replace('ጠ / ሚ/ ር', 'ጠ/ሚ/ር')
+    line = line.replace('ዓ. ም.', 'ዓ.ም.')
+    line = line.replace('ዓ. ም', 'ዓ.ም')
+    line = line.replace('መ / ቤት', 'መ/ቤት')
+    line = line.replace('ሚ / ር', 'ሚ/ር')
+    line = line.replace('ት / ቤ', 'ት/ቤ')
+    line = line.replace('መ / ቤ', 'መ/ቤ')
+    line = line.replace('ፍ / ቤ', 'ፍ/ቤ')
+    line = line.replace('ጽ / ቤ', 'ጽ/ቤ')
+    line = line.replace('ጠ / ሚ', 'ጠ/ሚ')
+    line = line.replace('ያኔ / ኢ', 'ያኔ/ኢ')
+    line = line.replace('ም / ሚ', 'ም/ሚ')
+    line = line.replace('ም / ቤ', 'ም/ቤ')
+    return line
+
 def checkIfAm(text):
     """
     Given a text, returns true if the text contains any amharic letter, punctiuation or digit
@@ -171,17 +239,20 @@ def clean_to_file(corpus, output_filename):
     new_corpus.close() # close the clean file
 
 def clean_to_text(line):
+    line = replace_abbri(line)
     line = line.strip() # remove aby trailing spaces around the text
     # if len(line) > 0: # if there are characters
     line =  clean_multiple_chars('"', line) # replace multiple '"' with single '"' e.g """" => "
     line =  clean_multiple_chars('!', line) # replace multiple '!' with single '!' e.g !!! => !
     patter = re.compile(r'(\. )') 
     line = re.sub(patter, '…', line) # replace multiple '. ' with single '…' e.g . . . . => …
-    patter = re.compile(r'(\.)')
-    line = re.sub(patter, '…', line) # replace multiple '.' with single '…' e.g ... => …
+    # patter = re.compile(r'(\.)')
+    # line = re.sub(patter, '…', line) # replace multiple '.' with single '…' e.g ... => …
     patter = re.compile('(#)')
     line = re.sub(patter, '#', line) # replace multiple '#' with single '#' e.g ### => #
     line = re.sub(r'#+', "#", line)
+    line = re.sub('ዓ.ም.', "ዓ.ም", line)
+    line = re.sub(r'(\.)\1{1,}', "…", line)
     line = re.sub(r'\…+', "…", line) # replace multiple '…' with single '…' e.g …… => …
     line = re.sub(r'\…\s+', "…", line) # replace multiple '… ' with single '… …' e.g … … => …
     line = re.sub(r'u+', "u", line) # replace multiple '… ' with single '… …' e.g … … => …
@@ -208,7 +279,6 @@ def clean_to_text(line):
     line = " ".join(valid_words)
     line = replace_non_am_with_unk(line)
     return line
-
 
 # import re
 # import string
