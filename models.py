@@ -83,12 +83,14 @@ class BiLSTMChar(nn.Module):
             self.embedding.weight.requires_grad = train_embedding
 
         self.lstm = nn.LSTM(hidden_size, hidden_size//2, 
-                            batch_first=True, bidirectional=True,)
+                            batch_first=True)
         # nn.init.xavier_normal_(self.lstm)
         # self.cnn = nn.Conv2d(1, 32, 5, 2)
-        self.fc1 = nn.Linear(hidden_size, n_classes)
+        self.fc1 = nn.Linear(hidden_size//2, n_classes)
         nn.init.xavier_normal_(self.fc1.weight)
-        self.fc2 = nn.Linear(32*14+200, hidden_size)
+        self.cnn = nn.Conv2d(1, 32, 3, 2)
+        self.pool = nn.MaxPool2d(2, stride=2)
+        self.fc2 = nn.Linear(872, hidden_size)
         nn.init.xavier_normal_(self.fc2.weight)
         self.fc3 = nn.Linear(embed_size*2, hidden_size)
         self.loss_func = nn.CrossEntropyLoss()
@@ -99,9 +101,14 @@ class BiLSTMChar(nn.Module):
         # print(x.shape)
         for i in range(cs.shape[1]):
             c = cs[:, i]
-            c = self.char_embedding(c).view(x.shape[0], -1)
+            c = self.char_embedding(c).unsqueeze(1)
+            # c = c.view(x.shape[0], )
+            c = self.cnn(c)
+            c = self.pool(c)
+            c = c.view(x.shape[0], -1)
             c = t.cat((c, x[:, i]), dim=1)
-            c = F.relu(self.fc2(c))
+            c = F.relu(c)
+            c = self.fc2(c)
 
             # xx = F.relu(x[:, i])
             

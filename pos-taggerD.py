@@ -316,35 +316,35 @@ def test_model(model, test_data, batch_size, unknowns):
     return [ek, eu, ee]
 
 
-class Tagger(nn.Module):
+# class Tagger(nn.Module):
 
-    def __init__(self, vocab_size, embed_size, hidden_size, n_classes, embedding_vectors=None, train_embedding=True):
-        super(Tagger, self).__init__()
-        self.hidden_size = hidden_size
-        self.embedding = nn.Embedding(vocab_size, embed_size)
-        # self.embedding2 = nn.Embedding(vocab_size, 200)
-        # self.embedding2.weight.data.copy_(t.from_numpy(vectors2))
-        # self.embedding2.weight.requires_grad = False
-        if embedding_vectors is not None:
-            self.embedding.weight.data.copy_(t.from_numpy(embedding_vectors))
-            self.embedding.weight.requires_grad = train_embedding
+#     def __init__(self, vocab_size, embed_size, hidden_size, n_classes, embedding_vectors=None, train_embedding=True):
+#         super(Tagger, self).__init__()
+#         self.hidden_size = hidden_size
+#         self.embedding = nn.Embedding(vocab_size, embed_size)
+#         # self.embedding2 = nn.Embedding(vocab_size, 200)
+#         # self.embedding2.weight.data.copy_(t.from_numpy(vectors2))
+#         # self.embedding2.weight.requires_grad = False
+#         if embedding_vectors is not None:
+#             self.embedding.weight.data.copy_(t.from_numpy(embedding_vectors))
+#             self.embedding.weight.requires_grad = train_embedding
 
-        self.lstm = nn.LSTM(embed_size, hidden_size//2, #num_layers=2, dropout=.2,
-                            batch_first=True, bidirectional=True)
-        # self.fc2 = nn.Linear(200, 128)
-        self.fc1 = nn.Linear(hidden_size, n_classes)
+#         self.lstm = nn.LSTM(embed_size, hidden_size//2, #num_layers=2, dropout=.2,
+#                             batch_first=True, bidirectional=True)
+#         # self.fc2 = nn.Linear(200, 128)
+#         self.fc1 = nn.Linear(hidden_size, n_classes)
 
-    def forward(self, x, c):
-        x1 = self.embedding(x)
-        # x2 = self.embedding2(x)
-        # x = t.cat((x1, x2), dim=2)
-        x, (h, c) = self.lstm(x1)
-        # print(x.shape, x2.shape)
-        # x2 = self.fc2(x2)
-        # x = x + x2 #t.cat((x, x2), dim=2)
-        # print(x.shape, x2.shape)
-        x = self.fc1(x)
-        return x
+#     def forward(self, x, c):
+#         x1 = self.embedding(x)
+#         # x2 = self.embedding2(x)
+#         # x = t.cat((x1, x2), dim=2)
+#         x, (h, c) = self.lstm(x1)
+#         # print(x.shape, x2.shape)
+#         # x2 = self.fc2(x2)
+#         # x = x + x2 #t.cat((x, x2), dim=2)
+#         # print(x.shape, x2.shape)
+#         x = self.fc1(x)
+#         return x
 
     # def loss_fn(self, logits, target, mask):
     #     log_likelihood = self.crf(logits, target, mask)
