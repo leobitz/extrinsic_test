@@ -21,9 +21,13 @@ import os
 #                         file.close()
 import numpy as np 
 
-eval_file = "eval/word-analogy.txt"
-result = evaluate.evaluate("vectors/word2vec.vec", eval_file)
+eval_file = "eval/alpha-word-analogy.txt"
+result = evaluate.evaluate("vectors/fasttext-alpha.vec", eval_file)
 print(result)
+# result = evaluate.evaluate("vectors/fasttext.vec", eval_file)
+# print(result)
+# result = evaluate.evaluate("vectors/fasttext-alpha.vec", eval_file)
+# print(result)
 # for embed_size in [125]:
 #     for run in [8]:
 #         for win_size in [1]:

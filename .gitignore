@@ -6,3 +6,5 @@ result/*
 Papers/*
 data/posdata/
 runner.bat
+*.pyc
+junk/*

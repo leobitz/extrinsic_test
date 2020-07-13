@@ -11,13 +11,15 @@ import torch as t
 import os
 # from crf.crf import ConditionalRandomField
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import f1_score
 
 np.seterr(divide='ignore')
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--corpus", type=str)
 parser.add_argument("-v", "--vector", type=str)
-# parser.add_argument("-r", "--result", type=str)
 parser.add_argument("-u", "--units", type=int)
 parser.add_argument("-e", "--epochs", type=int)
 parser.add_argument("-b", "--batch_size", type=int, default=32)
@@ -124,7 +126,7 @@ def get_word_vectors(filename):
     vectors[word2id[start_of_sentense]] = -np.ones(embed_size)/np.linalg.norm(-np.ones(embed_size))
     vectors[word2id[end_of_sentense]] = np.ones(embed_size)/np.linalg.norm(np.ones(embed_size))
     vectors[word2id[pad_word]] = np.zeros(embed_size)
-    return vectors, word2vec, embed_size
+    return vectors, word2vec, embed_size, unk_vector
 
 def prepare_line_data(line,  max_seq_length):
     x, y = [], []
@@ -174,13 +176,13 @@ for i in range(k_fold):
     folds[i] = (fold_x, fold_y, fold_m)
 
 vectors = None
-embed_size = 125
+embed_size = 200
 if vector_file_name is not None:
-    vectors, word2vec, embed_size = get_word_vectors(vector_file_name)
+    vectors, word2vec, embed_size, unk_vector = get_word_vectors(vector_file_name)
 print("Loading unks & knows")
 
 
-def get_unknown_words(train_x, train_y):
+def get_unknown_words(train_x, test_x):
     knowns = set([])
     unknowns = set([])
     test_knowns = set([])
@@ -247,28 +249,78 @@ def calc_eval(confusion):
     F1 = np.nan_to_num(2 * np.mean(P) * np.mean(R) / (np.mean(P) + np.mean(R)))
     return A, np.mean(P), np.mean(R), F1
 
+def evaluate(targtes, preds):
+    all_ys = targtes
+    all_preds = preds
+    precision = precision_score(all_ys, all_preds, average=None)
+    recall = recall_score(all_ys, all_preds, average=None)
+    f1 = f1_score(all_ys, all_preds, average=None)
+    accuracy = accuracy_score(all_ys, all_preds)
+    return np.mean(accuracy), np.mean(precision), np.mean(recall), np.mean(f1)
 
-def test(model, test_x, test_y, test_m, batch_size, unknowns):
+def test2(model, test_x, test_y, test_m, batch_size, unknowns):
     test_n_batches = len(test_x) // batch_size
     test_gen = generate(test_x, test_y, test_m, batch_size)
     knmats = np.zeros((len(tags), len(tags)), dtype=np.float32)
     unknmats = np.zeros((len(tags), len(tags)), dtype=np.float32)
     all_preds = []
-    all_targets = []
+    all_ys = []
+    allo = []
+    unks = []
     for i in range(test_n_batches):
         x, y, m = next(test_gen)
         xx = t.tensor(x, dtype=t.long).cuda()
         mm = t.tensor(m, dtype=t.long).cuda()
-        z = model(xx, mm)
+        z = model(xx)
         preds = t.argmax(z, dim=2).detach().cpu().numpy()
         for j in range(len(preds)):
             k = np.argwhere(y[j] == tag2id[end_of_tag])[0][0]
-            knmat, unknmat = evaluate_uknowns(x[j][:k], y[j][:k], preds[j][:k], unknowns)
-            knmats += knmat
-            unknmats += unknmat
-    # return acc
-    return [calc_eval(knmats), calc_eval(unknmats), calc_eval(unknmats + knmats)]
-
+            pred_row = preds[j]
+            for uk  in range(k):
+                py = y[j][uk]
+                pp = pred_row[uk]
+                px = x[j][uk]
+                # print([px, py, pp])
+                if px in unknowns:
+                    allo.append([px, py, pp])
+                else:
+                    unks.append([px, py, pp])
+    allo = np.array(allo) 
+    unks = np.array(unks)
+    every = np.concatenate((allo, unks), axis=0)
+    ek = evaluate(allo[:, 1], allo[:, 2])
+    eu = evaluate(unks[:, 1], unks[:, 2])
+    ee = evaluate(every[:, 1], every[:, 2])
+    return [ek, eu, ee]
+# def test(model, test_x, test_y, test_m, batch_size, unknowns):
+#     test_n_batches = len(test_x) // batch_size
+#     test_gen = generate(test_x, test_y, test_m, batch_size)
+#     knmats = np.zeros((len(tags), len(tags)), dtype=np.float32)
+#     unknmats = np.zeros((len(tags), len(tags)), dtype=np.float32)
+#     all_preds = []
+#     all_targets = []
+#     for i in range(test_n_batches):
+#         x, y, m = next(test_gen)
+#         # F = []
+#         # for line in x:
+#         #     new_line = []
+#         #     for xx in line:
+#         #         if xx in unknowns:
+#         #             new_line.append(unk)
+#         #         else:
+#         #             new_line.append(xx)
+#         #     F.append(new_line)
+#         xx = t.tensor(x, dtype=t.long).cuda()
+#         mm = t.tensor(m, dtype=t.long).cuda()
+#         z = model(xx, mm)
+#         preds = t.argmax(z, dim=2).detach().cpu().numpy()
+#         for j in range(len(preds)):
+#             k = np.argwhere(y[j] == tag2id[end_of_tag])[0][0]
+#             knmat, unknmat = evaluate_uknowns(x[j][:k], y[j][:k], preds[j][:k], unknowns)
+#             knmats += knmat
+#             unknmats += unknmat
+#     # return acc
+#     return [calc_eval(knmats), calc_eval(unknmats), calc_eval(unknmats + knmats)]
 
 class Tagger(nn.Module):
 
@@ -284,15 +336,15 @@ class Tagger(nn.Module):
                             batch_first=True, bidirectional=True)
         self.fc1 = nn.Linear(hidden_size, n_classes)
 
-    def forward(self, x, mask,  y=None):
+    def forward(self, x):
         x = self.embedding(x)
         x, (h, c) = self.lstm(x)
         x = self.fc1(x)
         return x
 
-    def loss_fn(self, logits, target, mask):
-        log_likelihood = self.crf(logits, target, mask)
-        return -log_likelihood / logits.shape[0]
+    # def loss_fn(self, logits, target, mask):
+    #     log_likelihood = self.crf(logits, target, mask)
+    #     return -log_likelihood / logits.shape[0]
 
 def train_model(train_x, train_y, train_m, test_x, test_y, test_m, batch_size, epochs, n_batches, unknowns):
     gen = generate(train_x, train_y, train_m, batch_size)
@@ -310,7 +362,7 @@ def train_model(train_x, train_y, train_m, test_x, test_y, test_m, batch_size, e
             y = t.tensor(y, dtype=t.long).cuda()
             m = t.tensor(m, dtype=t.long).cuda()
             model.zero_grad()
-            z = model(x, m, y)
+            z = model(x)
             z = z.view(-1, len(tag2id))
             y = y.view(-1)
             loss = loss_function(z, y)
@@ -319,10 +371,11 @@ def train_model(train_x, train_y, train_m, test_x, test_y, test_m, batch_size, e
 
             batch_loss = loss.detach().cpu().numpy()
             total_loss += batch_loss
-        accuracy = test(model, test_x, test_y, test_m, test_batch_size, unknowns)
+        accuracy = test2(model, test_x, test_y, test_m, test_batch_size, unknowns)
+        # print(accuracy)
         accs.append(accuracy)
         loss = total_loss / n_batches
-        print("Epoch: {0}, Loss: {1:.3}, Test: {2:.3}, {3:.3}, {4:.3}".format(epoch, loss, accuracy[0][0], accuracy[1][0], accuracy[2][0]))
+        print("Epoch: {0}, Loss: {1:.3}, Test: {2:.3}, {3:.3}, {4:.3}".format(epoch, loss, accuracy[0][-1], accuracy[1][-1], accuracy[2][-1]))
         accuracy.insert(0, [loss])
     return accs
 
