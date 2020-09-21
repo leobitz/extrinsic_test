@@ -1,0 +1,30 @@
+rl gen acc p
+poss expl
+acc False True
+plr False True
+pp ke None be Inde I Iske le Iyye wede sIle
+def False True
+pos n v cop
+cnj None m na s
+dis False True
+v None agt ins inf man
+prp False True
+gen True False
+itu False True
+cj2 None na m s nI sa Inji ma
+sb p1 plr
+ob p1 expl
+neg False True
+as smp it rc
+vc smp tr ps cs
+ye False True
+tm imf prf j_i ger prs
+ax None al
+rel True False
+sub True False
+p2 False True
+p1 False True
+fem False True
+cj1 None lI IndI bI sI IskI
+der ass
+frm False True

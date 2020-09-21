@@ -4,7 +4,6 @@ import numpy as np
 import torch.nn.functional as F
 import torch.nn as nn
 import torch as t
-import mycrf
 
 
 class BiLSTMCRF(nn.Module):
@@ -154,7 +153,7 @@ class BiLSTMChar(nn.Module):
             self.embedding.weight.data.copy_(t.from_numpy(embedding_vectors))
             self.embedding.weight.requires_grad = train_embedding
 
-        self.lstm = nn.LSTM(485, hidden_size//2, 
+        self.lstm = nn.LSTM(357, hidden_size//2, 
                            bidirectional=True,
                            batch_first=True)
 
@@ -172,7 +171,7 @@ class BiLSTMChar(nn.Module):
         self.fc2 = nn.Linear(embed_size, hidden_size//2)
         nn.init.kaiming_normal_(self.fc2.weight)
 
-        self.fc3 = nn.Linear(256*2, n_classes)
+        self.fc3 = nn.Linear(256, n_classes)
         nn.init.kaiming_normal_(self.fc3.weight)
         self.loss_func = nn.CrossEntropyLoss()
 
