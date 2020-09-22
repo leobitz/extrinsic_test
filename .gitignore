@@ -8,3 +8,4 @@ data/posdata/
 runner.bat
 *.pyc
 junk/*
+.ipynb_checkpoints/*

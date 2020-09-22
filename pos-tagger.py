@@ -317,6 +317,10 @@ def test_model(model, test_data, batch_size, unknowns):
         c = t.tensor(c, dtype=t.long).cuda()
         z = model(xx, c, f)
         preds = t.argmax(z, dim=2).detach().cpu().numpy()
+        del z
+        del c
+        del f
+        del xx
         for j in range(len(preds)):
             k = np.argwhere(y[j] == tag2id[end_of_tag])[0][0]
             pred_row = preds[j]
@@ -366,7 +370,10 @@ def train_model(train, test_data, batch_size, epochs, n_batches, unknowns):
             loss = loss_function(z, y)
             loss.backward()
             optimizer.step()
-
+            del x
+            del y
+            del c
+            del f
             batch_loss = loss.detach().cpu().numpy()
             total_loss += batch_loss
         accuracy = test_model(model, test_data, test_batch_size, unknowns)

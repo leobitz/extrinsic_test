@@ -1,7 +1,7 @@
 @ECHO OFF
-for %%h in (256) do (
-	for %%b in (32) do (
-		for %%c in (small) do (
+for %%h in (512) do (
+	for %%b in (16) do (
+		for %%c in (big) do (
 			for %%v in (fasttext) do (
                 for %%t in (1) do (
 					for %%r in (1) do (
