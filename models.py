@@ -153,11 +153,15 @@ class BiLSTMChar(nn.Module):
             self.embedding.weight.data.copy_(t.from_numpy(embedding_vectors))
             self.embedding.weight.requires_grad = train_embedding
 
-        self.lstm = nn.LSTM(485, hidden_size//2, 
-                           bidirectional=True,
-                           batch_first=True)
+        if hidden_size == 512:
+            lstm_input = 485
+        else:
+            lstm_input = 357
+        self.lstm = nn.LSTM(lstm_input, hidden_size//2,
+                            bidirectional=True,
+                            batch_first=True)
 
-        self.fc1 = nn.Linear(896, hidden_size//2)
+        self.fc1 = nn.Linear(832, hidden_size//2)
         nn.init.kaiming_normal_(self.fc1.weight)
 
         self.cnn = nn.Conv2d(1, 64, 7, 2)
@@ -168,10 +172,10 @@ class BiLSTMChar(nn.Module):
         # nn.init.xavier_normal_(self.cnn.weight)
         # self.pool2 = nn.MaxPool2d(2, stride=2)
 
-        self.fc2 = nn.Linear(512, hidden_size//2)
+        self.fc2 = nn.Linear(256, hidden_size//2)
         nn.init.kaiming_normal_(self.fc2.weight)
 
-        self.fc3 = nn.Linear(512, n_classes)
+        self.fc3 = nn.Linear(256, n_classes)
         nn.init.kaiming_normal_(self.fc3.weight)
         self.loss_func = nn.CrossEntropyLoss()
 
@@ -182,15 +186,14 @@ class BiLSTMChar(nn.Module):
         # print(x.shape)
         for i in range(cs.shape[1]):
             c = cs[:, i]
-
-            c = self.char_embedding(c).unsqueeze(1)
+            # c = self.char_embedding(c).unsqueeze(1)
             c = self.cnn(c)
             c = self.pool(c)
             c = c.view(x.shape[0], -1)
 
             c = self.fc1(c)
             # c = F.relu6(c)
-            
+
             # xx = self.fc2(x[:, i])
             # xx = F.relu6(xx)
             c = t.cat((c, x[:, i], f[:, i]), dim=1)
@@ -209,7 +212,7 @@ class BiLSTMChar(nn.Module):
         # x = self.fc2(x)
         # x = F.relu6(x)
         x = self.fc3(x)
-        
+
         # x = F.relu(x)
         return x
 
@@ -224,12 +227,67 @@ class BiLSTMChar(nn.Module):
                     elif 'bias' in name:
                         param.data.fill_(0)
 
-# model = BiLSTMChar(20, 200, 256, 6, 13, 32, 7)
 
-# sen_length = 9
-# sen = np.random.randint(0, 20, sen_length).reshape((1, sen_length))
-# sen_char = np.vstack([np.random.randint(0, 13, 7) for x in range(sen_length)]).reshape((1, sen_length, 7))
-# sen = t.tensor(sen).long()
-# sen_char = t.tensor(sen_char).long()
-# print(sen_char.shape)
-# model(sen, sen_char)
+class MiniElmo(nn.Module):
+    def __init__(self,
+                 vocab_size,
+                 hidden_size,
+                 n_char_class,
+                 char_embed_size,
+                 max_char_length):
+        super(MiniElmo, self).__init__()
+        self.hidden_size = hidden_size
+        self.n_char_class = n_char_class
+        self.max_char_length = max_char_length
+        self.num_layers = 1
+        self.char_embedding = nn.Embedding(n_char_class, char_embed_size)
+
+        self.cnn = nn.Conv2d(1, 64, 7, 2)
+        nn.init.xavier_normal_(self.cnn.weight)
+        self.pool = nn.MaxPool2d(3, stride=2)
+
+        self.fc1 = nn.Linear(896, hidden_size)
+        nn.init.kaiming_normal_(self.fc1.weight)
+
+        self.lstm = nn.LSTM(hidden_size, hidden_size//2,
+                            bidirectional=True,
+                            batch_first=True, num_layers=self.num_layers)
+
+        self.fc2 = nn.Linear(hidden_size, vocab_size)
+        nn.init.kaiming_normal_(self.fc2.weight)
+
+    def forward(self, x, state):
+        char_word_embs = []
+
+        for i in range(x.shape[1]):
+            c = x[:, i]
+
+            c = self.char_embedding(c).unsqueeze(1)
+            c = self.cnn(c)
+            c = self.pool(c)
+            c = c.view(x.shape[0], -1)
+
+            c = self.fc1(c)
+            char_word_embs.append(c)
+
+        x = t.stack(char_word_embs, dim=1)
+        x, states = self.lstm(x, state)
+
+        z = self.fc2(x)
+
+        return z, states
+
+    def init_state(self, sequence_length):
+        return (t.zeros(self.num_layers*2, sequence_length, self.hidden_size//2),
+                t.zeros(self.num_layers*2, sequence_length, self.hidden_size//2))
+
+    def init_weights(self):
+        for m in self.modules():
+            if type(m) in [nn.GRU, nn.LSTM, nn.RNN]:
+                for name, param in m.named_parameters():
+                    if 'weight_ih' in name:
+                        nn.init.xavier_uniform_(param.data)
+                    elif 'weight_hh' in name:
+                        nn.init.orthogonal_(param.data)
+                    elif 'bias' in name:
+                        param.data.fill_(0)

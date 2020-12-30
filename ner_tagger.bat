@@ -1,9 +1,9 @@
 @ECHO OFF
-for %%h in (512) do (
+for %%h in (256 512) do (
 	for %%b in (32) do (
-        for %%v in (fasttext) do (
+        for %%v in (word2vec fasttext fasttext-alpha) do (
             for %%t in (1) do (
-                for %%r in (1) do (
+                for %%r in (1 2 3 4 5) do (
                     if exist result\pos\%%c-%%v-%%h-%%t-%%r-9 (
                         echo file exists
                     ) else (

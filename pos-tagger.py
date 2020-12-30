@@ -66,7 +66,7 @@ k_fold = 10
 max_char_length = 14
 
 pos_data, pos_vocabs, tags = lib.get_pos_data_v2(corpus)
-# pos_data = pos_data[:2000]
+# pos_data = pos_data[:1000]
 p = []
 for line in pos_data:
     if len(line) < max_seq_len:
@@ -151,6 +151,61 @@ def get_word_vectors(filename):
     vectors[word2id[end_of_sentense]] = -one_vec
     vectors[word2id[pad_word]] = np.zeros(embed_size)
     return vectors, word2vec, word2clean, embed_size, unk_vector
+def build_charset():
+    """
+    returns charcter mapping to integer and vice versa
+
+    """
+    charset = open('data/charset.txt', encoding='utf-8').readlines()
+    n_consonant = len(charset)
+    n_vowel = 12
+    char2int, int2char, char2tup, tup2char = {}, {}, {}, {}
+    j = 0
+    for k in range(len(charset)):
+        row = charset[k][:-1].strip().split(' ')
+        if k == 44:
+            row.append(' ')
+        for i in range(len(row)):
+            char2tup[row[i]] = (k, i)
+            int2char[j] = row[i]
+            char2int[row[i]] = j
+            tup = "{0}-{1}".format(k, i)
+            tup2char[tup] = row[i]
+            j += 1
+    return char2int, int2char, char2tup, tup2char, n_consonant, n_vowel
+
+char2int, int2char, char2tup, tup2char, n_consonant, n_vowel = build_charset()
+def char_to_vec(char, char2tup, n_consonant, n_vowel):
+    vec = np.zeros(((n_consonant + n_vowel), ))
+    t = char2tup[char]
+    vec[t[0]] = 1
+    vec[n_consonant + t[1]] = 1
+    return vec
+
+
+def word2vec_single(char2tup, words, id2word, max_word_len, n_consonant, n_vowel):
+    """
+    using char2int mapping, it creates stack of one-hot vectors characters for a word
+    the mapping is seperated for vowel and consonant
+    [0 0 0 1 0 0: 0 1 0 0]
+    Consonan        Vowel
+    """
+    inputs = [np.ndarray((max_word_len, (n_consonant + n_vowel))) for i in range(max_word_len)]
+    for i in range(len(words)):
+        chars = words[i]
+        for j in range(len(chars)):
+            inputs[j][i] = char_to_vec(chars[j], char2tup, n_consonant, n_vowel)
+        for k in range(j + 1, max_word_len):
+            inputs[k][i] = char_to_vec(chars[j], char2tup, n_consonant, n_vowel)
+    return inputs
+
+
+id2mat = {}
+for word_id in id2word.keys():
+    word = id2word[word_id]
+    word_mat = word2vec_single(char2tup, [word], id2word, max_char_length, n_consonant, n_vowel)
+    id2mat[word2id[word]] = word_mat[0]
+
 
 def word_to_ids(word, char2id, max_len=13):
     idx = -1
@@ -166,12 +221,14 @@ def word_to_ids(word, char2id, max_len=13):
 
 
 def prepare_line_data(line,  max_seq_length, max_char_length):
-    x, y, f = [], [], []
+    x, y, f, ma = [], [], [], []
     char_x = []
     for [word, tag] in line:
         word_id = word2id[word]
         tag_id = tag2id[tag]
+        # mat = id2mat[word_id]
         x.append(word_id)
+        # ma.append(mat)
         y.append(tag_id)
         if word not in word2feat:
             vec =  [0]*word_feat_length
@@ -184,7 +241,8 @@ def prepare_line_data(line,  max_seq_length, max_char_length):
     x = [word2id[start_of_sentense]] + x + [word2id[end_of_sentense]]
     y = [tag2id[start_of_tag]] + y + [tag2id[end_of_tag]]
     f = [word2feat[start_of_sentense]] + f + [word2feat[start_of_sentense]]
-    
+    ma = [id2mat[wid] for wid in x]
+
     start_pad_char_word = [char2id[start_pad_char]]*max_char_length
     stop_pad_char_word = [char2id[stop_pad_char]]*max_char_length
     end_pad_char_word = [char2id[end_pad_char]]*max_char_length
@@ -193,7 +251,9 @@ def prepare_line_data(line,  max_seq_length, max_char_length):
     pad_len = max_seq_length - len(x)
     xpad = [word2id[pad_word]] * pad_len
     ypad = [tag2id[pad_tag]] * pad_len
-    
+
+    mapad = [id2mat[word_id] for word_id in xpad]
+
     fpad = [word2feat[start_of_sentense]] * pad_len
     c_pad = [end_pad_char_word] * pad_len
     mask = [1]*len(x) + [0] * pad_len
@@ -202,22 +262,26 @@ def prepare_line_data(line,  max_seq_length, max_char_length):
     f = f + fpad
     
     c = char_x + c_pad
-    return x, y, c, f, mask
+    ma = ma + mapad
+    return x, y, c, f, mask,  ma
 
 
-X, Y, C, F, M = [], [], [], [], []
+X, Y, C, F, M, MA = [], [], [], [], [], []
 for line in clean_data:
-    x, y, c, f, m = prepare_line_data(line, max_seq_len + 2, max_char_length)
+    x, y, c, f, m, ma = prepare_line_data(line, max_seq_len + 2, max_char_length)
     X.append(x)
     Y.append(y)
     C.append(c)
     M.append(m)
+    MA.append(ma)
     F.append(f)
 X = np.array(X)
 Y = np.array(Y)
 M = np.array(M)
+MA = np.stack(MA)
+MA = np.expand_dims(MA, 2)
+print(MA.shape)
 F = np.array(F)
-print(F.shape, X.shape)
 C = np.array(C)
 even_len = len(X) - len(X) % k_fold
 indexes = np.arange(even_len)
@@ -227,6 +291,7 @@ Y = Y[indexes]
 M = M[indexes]
 C = C[indexes]
 F = F[indexes]
+MA = MA[indexes]
 
 fold_size = even_len // k_fold
 folds = {}
@@ -237,9 +302,10 @@ for i in range(k_fold):
     fold_x = X[fold_indexes]
     fold_y = Y[fold_indexes]
     fold_m = M[fold_indexes]
+    fold_ma = MA[fold_indexes]
     fold_c = C[fold_indexes]
     fold_f = F[fold_indexes]
-    folds[i] = (fold_x, fold_y, fold_c, fold_f, fold_m)
+    folds[i] = (fold_x, fold_y, fold_c, fold_f, fold_m, fold_ma)
 
 vectors = None
 embed_size = 200 #+ word_feat_length
@@ -276,7 +342,7 @@ def get_unknown_words(train_x, test_x):
     return knowns, unknowns, test_knowns, mat
 
 def generate(data, batch_size):
-    train_x, train_y, train_c, train_f,  train_m = data
+    train_x, train_y, train_c, train_f,  train_m,  train_ma = data
     current = 0
     n_batches = len(train_x) // batch_size
     indexes = np.arange(len(train_x))
@@ -284,11 +350,13 @@ def generate(data, batch_size):
     while True:
         bs = indexes[current:current+batch_size]
         x = train_x[bs]
+        # x = word2vec_single(char2tup, x, id2word, max_char_length, n_consonant, n_vowel)
         y = train_y[bs]
         m = train_m[bs]
+        ma = train_ma[bs]
         c = train_c[bs]
         f = train_f[bs]
-        yield x, y, c, f, m
+        yield x, y, c, f, m, ma
         current += batch_size
         if current >= n_batches * batch_size:
             current = 0
@@ -310,15 +378,16 @@ def test_model(model, test_data, batch_size, unknowns):
     unks = []
     all_print = []
     for i in range(test_n_batches):
-        x, y, c, f, m = next(test_gen)
+        x, y, c, f, m, ma = next(test_gen)
         xx = t.tensor(x, dtype=t.long).cuda()
         # mm = t.tensor(m, dtype=t.long).cuda()
         f = t.tensor(f, dtype=t.float32).cuda()
-        c = t.tensor(c, dtype=t.long).cuda()
-        z = model(xx, c, f)
+        # c = t.tensor(c, dtype=t.long).cuda()
+        ma = t.tensor(ma, dtype=t.float32).cuda()
+        z = model(xx, ma, f)
         preds = t.argmax(z, dim=2).detach().cpu().numpy()
         del z
-        del c
+        # del c
         del f
         del xx
         for j in range(len(preds)):
@@ -342,7 +411,7 @@ def test_model(model, test_data, batch_size, unknowns):
     ek = evaluate(allo[:, 1], allo[:, 2])
     eu = evaluate(unks[:, 1], unks[:, 2])
     ee = evaluate(every[:, 1], every[:, 2])
-    open("checks", encoding='utf-8', mode='w').writelines(all_print)
+    # open("checks", encoding='utf-8', mode='w').writelines(all_print)
     return [ek, eu, ee]
 
 def train_model(train, test_data, batch_size, epochs, n_batches, unknowns):
@@ -358,13 +427,14 @@ def train_model(train, test_data, batch_size, epochs, n_batches, unknowns):
         total_loss = 0
         for batch in range(n_batches):
 
-            x, y, c, f, m = next(gen)
+            x, y, c, f, m, ma = next(gen)
             x = t.tensor(x, dtype=t.long).cuda()
+            ma = t.tensor(ma, dtype=t.float32).cuda()
             y = t.tensor(y, dtype=t.long).cuda()
             f = t.tensor(f, dtype=t.float32).cuda()
-            c = t.tensor(c, dtype=t.long).cuda()
+            # c = t.tensor(c, dtype=t.long).cuda()
             model.zero_grad()
-            z = model(x, c, f)
+            z = model(x, ma, f)
             z = z.view(-1, len(tag2id))
             y = y.view(-1)
             loss = loss_function(z, y)
@@ -372,8 +442,9 @@ def train_model(train, test_data, batch_size, epochs, n_batches, unknowns):
             optimizer.step()
             del x
             del y
-            del c
+            # del c
             del f
+            del ma
             batch_loss = loss.detach().cpu().numpy()
             total_loss += batch_loss
         accuracy = test_model(model, test_data, test_batch_size, unknowns)
@@ -396,11 +467,11 @@ def save_acc(accs, fold):
 
 fold_unks ={}
 for i in range(k_fold):
-    test_x, test_y, test_c, test_f, test_m = folds[i]
+    test_x, test_y, test_c, test_f, test_m, test_ma = folds[i]
     train_x, train_y, train_m = [], [], []
     for k in range(k_fold):
         if k != i:
-            x, y, c, f, m = folds[k]
+            x, y, c, f, m, ma = folds[k]
             train_x.append(x)
     train_x = np.vstack(train_x)
     knowns, unknowns, test_knowns, unk_mask = get_unknown_words(train_x, test_x)
@@ -409,25 +480,28 @@ for i in range(k_fold):
 print("Starting training")
 
 for fold in range(k_fold):
-    test_x, test_y, test_c, test_f, test_m = folds[fold]
-    train_x, train_y, train_c, train_f, train_m = [], [], [], [], []
+    test_x, test_y, test_c, test_f, test_m, test_ma = folds[fold]
+    train_x, train_y, train_c, train_f, train_m, train_ma = [], [], [], [], [], []
     for k in range(k_fold):
         if k != fold:
-            x, y, c, f, m = folds[k]
+            x, y, c, f, m, ma = folds[k]
             train_x.append(x)
             train_y.append(y)
             train_m.append(m)
+            train_ma.append(ma)
             train_c.append(c)
             train_f.append(f)
     train_x = np.vstack(train_x)
     train_y = np.vstack(train_y)
     train_m = np.vstack(train_m)
+    train_ma = np.vstack(train_ma)
+    print(train_x.shape, train_ma.shape)
     train_c = np.vstack(train_c)
     train_f = np.vstack(train_f)
     n_batches = len(train_x) // batch_size
     (knowns, unknowns, test_knowns, mask) = fold_unks[fold]
     print("Fold {0}/10".format(fold))
-    train = (train_x, train_y, train_c, train_f, train_m)
-    test_data = (test_x, test_y, test_c, test_f, test_m)
+    train = (train_x, train_y, train_c, train_f, train_m, train_ma)
+    test_data = (test_x, test_y, test_c, test_f, test_m, test_ma)
     accss = train_model(train, test_data, batch_size, epochs, n_batches, unknowns)
     save_acc(accss, fold)

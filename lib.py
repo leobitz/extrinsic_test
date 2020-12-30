@@ -54,6 +54,7 @@ def build_charset(charset_file="charset.txt"):
         if len(row) > n_vowel:
             n_vowel = len(row)
         for i in range(len(row)):
+            if row[i] == '': continue
             char2tup[row[i]] = (k, i)
             int2char[j] = row[i]
             char2int[row[i]] = j

@@ -5,6 +5,7 @@ vectors/*
 result/*
 Papers/*
 data/posdata/
+pos-result/*
 runner.bat
 *.pyc
 junk/*
